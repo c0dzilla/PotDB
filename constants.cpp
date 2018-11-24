@@ -20,4 +20,5 @@ struct database {
 };
 
 const string ROOT_URL = "/home/codzilla/potdb";
+const string DATABASE_RECORDS = "db";
 const int BLOCK_SIZE = 5;

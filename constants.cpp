@@ -10,15 +10,18 @@ struct attribute {
 
 struct table {
     string name;
-    vector<attribute> attributes;
-    attribute primaryKey;
+    map<string, attribute> attributes;
+    string primaryKey;
 };
 
 struct database {
     string name;
-    vector<table> tables;
+    map<string, table> tables;
 };
 
-const string ROOT_URL = "/home/codzilla/potdb";
-const string DATABASE_RECORDS = "db";
+map<string, attribute>::iterator attritr;
+
+const string ROOT_URL = "/home/codzilla/potdb/";
+const string DATABASE_RECORDS = "db/";
+const string TABLE_RECORDS = "tables/";
 const int BLOCK_SIZE = 5;

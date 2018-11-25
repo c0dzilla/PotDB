@@ -32,7 +32,13 @@ void createTableRecord(string path, table t) {
     tablesFile.open(file.c_str());
     map<string, attribute>::iterator attritr;
     for (attritr = t.attributes.begin(); attritr != t.attributes.end(); attritr++) {
-        tablesFile << attritr->first << '\n';
+        attribute attr = attritr->second;
+        tablesFile << attritr->second.name << '\n';
+        if (attr.nullAllowed == true) {
+            tablesFile << "+" << '\n';
+        } else {
+            tablesFile << "-" << '\n';
+        }
     }
     if (t.primaryKey != "") {
         tablesFile << ".\n" << t.primaryKey;
@@ -55,6 +61,7 @@ void createTable(table t) {
     mkdir(t.name.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     string path = t.name + "/";
     createTableRecord(path, t);
+    currentDB.tables[t.name] = t;
 }
 
 map<string, attribute> prepareAttributes(table& t, string path) {
@@ -72,6 +79,12 @@ map<string, attribute> prepareAttributes(table& t, string path) {
         }
         attribute attr;
         attr.name = line;
+        getline(tableFile, line);
+        if (line == "+") {
+            attr.nullAllowed = true;
+        } else {
+            attr.nullAllowed = false;
+        }
         attributes[attr.name] = attr;
     }
 
@@ -143,4 +156,5 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
         
         record.close();
     }
+    return rows;
 }

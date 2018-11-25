@@ -6,12 +6,15 @@ using namespace std;
 
 struct attribute {
     string name;
+    string defaultValue = "";
+    bool nullAllowed = false;
 };
 
 struct table {
     string name;
     map<string, attribute> attributes;
     string primaryKey;
+    map<string, string> index;
 };
 
 struct database {
@@ -19,7 +22,7 @@ struct database {
     map<string, table> tables;
 };
 
-map<string, attribute>::iterator attritr;
+database currentDB;
 
 const string ROOT_URL = "/home/codzilla/potdb/";
 const string DATABASE_RECORDS = "db";

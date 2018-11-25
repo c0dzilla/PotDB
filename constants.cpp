@@ -13,7 +13,7 @@ struct table {
     string name;
     map<string, attribute> attributes;
     string primaryKey = "";
-    map<string, string> index;
+    map<string, bool> index;
 };
 
 struct database {

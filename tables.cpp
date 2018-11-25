@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <bits/stdc++.h>
+#include <dirent.h>
 #include "constants.cpp"
 #include "errors.cpp"
 
@@ -16,7 +17,7 @@ error generateTableEntry(const char* name) {
     string tableName;
     while (getline(tablesRecord, tableName)) {
         if (strcmp(tableName.c_str(), name) == 0) {
-            err.msg = "DUPLICATE TABLE";
+            err.msg = "Table " + tableName + " already exists";
             return err;
         }
     }
@@ -50,7 +51,7 @@ void createTable(table t) {
     error err;
     // primary key enforced(atleast for now)
     if (t.primaryKey == "") {
-        err.msg = "NO PRIMARY KEY SPECIFIED";
+        err.msg = "No primary key specified";
         return;
     }
     err = generateTableEntry(t.name.c_str());
@@ -92,6 +93,20 @@ map<string, attribute> prepareAttributes(table& t, string path) {
     return attributes;
 }
 
+map<string, bool> generateIndex(string path) {
+    DIR *dir = opendir(path.c_str());
+    map<string, bool> index;
+    struct dirent *ent;
+    
+    if (dir) {
+        while (ent = readdir(dir)) {
+            index[ent->d_name] = true;
+        }
+    }
+
+    return index;
+}
+
 map<string, table> prepareTables() {
     map<string, table> tables;
     fstream tablesRecord;
@@ -102,10 +117,15 @@ map<string, table> prepareTables() {
         t.name = tableName;
         string path = t.name + "/";
         t.attributes = prepareAttributes(t, path);
+        t.index = generateIndex(path);
         tables[tableName] = t;
     }
     tablesRecord.close();
     return tables;
+}
+
+bool checkKeyDuplicacy(table t, string key) {
+    return t.index.find(key) != t.index.end(); 
 }
 
 vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
@@ -140,6 +160,12 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
                 err.msg = "Attribute '" + attr->first + "' cannot be null";
                 throwError(err);
             }
+        }
+        // primary key uniqueness
+        if (checkKeyDuplicacy(t, row[t.primaryKey])) {
+            err.msg = "Detected duplicate value " + row[t.primaryKey] +  " on primary key " + t.primaryKey;
+            throwError(err);
+            continue; 
         }
         // write to file
         fstream record;

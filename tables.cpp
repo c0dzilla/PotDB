@@ -13,6 +13,10 @@ error generateTableEntry(const char* name) {
     error err;
     err.msg = "";
     tablesFile.open(TABLE_RECORDS, ios::in | ios::out | ios::trunc);
+    if (!tablesFile) {
+       std::cout << "Failed to open file\n";
+       exit(1);
+   }
     string tableName;
     while (getline(tablesFile, tableName)) {
         if (strcmp(tableName.c_str(), name) == 0) {
@@ -21,15 +25,15 @@ error generateTableEntry(const char* name) {
         }
     }
     tablesFile.clear();
-    tablesFile << name;
-    tablesFile << '\n';
+    tablesFile << name << '\n';
     tablesFile.close();
     return err;
 }
 
-void createTableRecord(const char* file, table t) {
+void createTableRecord(string path, table t) {
+    string file = path + t.name;
     ofstream tablesFile;
-    tablesFile.open((char*)file);
+    tablesFile.open(file.c_str());
     tablesFile << t.name << '\n';
     for (attritr = t.attributes.begin(); attritr != t.attributes.end(); attritr++) {
         tablesFile << attritr->first << '\n';
@@ -37,15 +41,13 @@ void createTableRecord(const char* file, table t) {
     tablesFile.close();
 }
 
-
-
 void createTable(table t) {
     error err = generateTableEntry(t.name.c_str());
-    if (strcmp(err.msg.c_str(), "") == 0) {
+    if (strcmp(err.msg.c_str(), "") != 0) {
         throwError(err);
         return;
     }
     mkdir(t.name.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
-    const char* path = strcat((char*)t.name.c_str(), (char*)TABLE_RECORDS.c_str());
+    string path = t.name + "/";
     createTableRecord(path, t);
 }

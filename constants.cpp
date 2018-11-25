@@ -6,14 +6,13 @@ using namespace std;
 
 struct attribute {
     string name;
-    string defaultValue = "";
     bool nullAllowed = false;
 };
 
 struct table {
     string name;
     map<string, attribute> attributes;
-    string primaryKey;
+    string primaryKey = "";
     map<string, string> index;
 };
 

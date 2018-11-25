@@ -33,7 +33,7 @@ void createTableRecord(string path, table t) {
     map<string, attribute>::iterator attritr;
     for (attritr = t.attributes.begin(); attritr != t.attributes.end(); attritr++) {
         attribute attr = attritr->second;
-        tablesFile << attritr->second.name << '\n';
+        tablesFile << attr.name << '\n';
         if (attr.nullAllowed == true) {
             tablesFile << "+" << '\n';
         } else {
@@ -112,7 +112,7 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
     error err;
     // check table existence
     if (currentDB.tables.find(t.name) == currentDB.tables.end()) {
-        err.msg = "TABLE DOES NOT EXIST";
+        err.msg = "Table " + t.name + " does not exist";
         throwError(err);
         vector<map<string, string>> r;
         return r;
@@ -137,11 +137,10 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
         // check for violation of not null constraint
         for (auto attr = t.attributes.begin(); attr != t.attributes.end(); attr++) {
             if (attr->second.nullAllowed == false && row.find(attr->first) == row.end()) {
-                err.msg = "Attribute " + attr->first + " cannot be null";
+                err.msg = "Attribute '" + attr->first + "' cannot be null";
                 throwError(err);
             }
         }
-
         // write to file
         fstream record;
         string file = t.name + "/" + row[t.primaryKey];
@@ -157,4 +156,29 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
         record.close();
     }
     return rows;
+}
+
+bool writeTableRecordFile(map<string, table> tables) {
+    fstream tablesRecord;
+    tablesRecord.open(TABLE_RECORDS, ios::out);
+
+    for (auto& entry : tables) {
+        tablesRecord << entry.first << '\n';
+    }
+    return true;
+}
+
+bool dropTable(vector<string> names) {
+    for (auto itr = names.begin(); itr != names.end(); itr++) {
+        string name = *itr;
+
+        if (currentDB.tables.find(name) == currentDB.tables.end()) {
+            error err;
+            err.msg = "Table '" + name + "' does not exist";
+            throwError(err);
+            continue;
+        }
+        currentDB.tables.erase(name);
+    }
+    return writeTableRecordFile(currentDB.tables);
 }

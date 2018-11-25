@@ -38,4 +38,11 @@ void createDB(database db) {
 void useDB(string name) {
     name = ROOT_URL + name + "/";
     chdir(name.c_str());
+    database db = prepareDatabase(name);
+}
+
+database prepareDatabase(string name) {
+    database db;
+    db.name = name;
+    db.tables = prepareTables();
 }

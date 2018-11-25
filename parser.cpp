@@ -2,7 +2,8 @@
 
 using namespace std;
 
-struct query {
+// every query shall end with a ' ;' i.e. space followed by a semi colon
+struct parsed_query {
 	string created_db;
 	string used_db;
 	string dropped_db;
@@ -11,11 +12,14 @@ struct query {
 	string dropped_table;
 	bool selected_all_columns;
 	bool deleted_all_columns;
+	bool is_where_clause;
 	string inserted_table;
 	string selected_table;
 	string delete_from_table;
+	string where_condition;
 	vector<string> selected_columns;
 	vector<string> deleted_columns;
+	vector<string> inserted_values;
 	string where_clause;
 };
 
@@ -32,6 +36,9 @@ vector<string> split(string str, char delimiter) {
 }
 
 void parse_query(string user_input) {
+
+	parsed_query query;
+
 	vector<string> delimited_query = split(user_input, ' '); // user query is split on whitespace, note that the columns and clauses should be written without spaces
 	int n = delimited_query.size();
 	/*cout<<n<<endl;
@@ -45,36 +52,36 @@ void parse_query(string user_input) {
 	if(definer=="use")
 	{
 		string object_used = delimited_query[1];
-		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower)
+		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower);
 		if(object_used=="database") {
-			used_db=delimited_query[2];
+			query.used_db=delimited_query[2];
 		}
 		else if(object_used=="table") {
-			used_table=delimited_query[2];
+			query.used_table=delimited_query[2];
 		}
 	}
 
 	else if(definer=="create")
 	{
 		string object_used = delimited_query[1];
-		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower)
+		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower);
 		if(object_used=="database") {
-			created_db=delimited_query[2];
+			query.created_db=delimited_query[2];
 		}
 		else if(object_used=="table") {
-			created_table=delimited_query[2];
+			query.created_table=delimited_query[2];
 		}
 	}
 
 	else if(definer=="drop")
 	{
 		string object_used = delimited_query[1];
-		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower)
+		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower);
 		if(object_used=="database") {
-			dropped_db=delimited_query[2];
+			query.dropped_db=delimited_query[2];
 		}
 		else if(object_used=="table") {
-			dropped_table=delimited_query[2];
+			query.dropped_table=delimited_query[2];
 		}
 	}
 
@@ -82,38 +89,59 @@ void parse_query(string user_input) {
 	{
 		if(delimited_query[1]=="*")
 		{
-			selected_all_columns = true;
+			query.selected_all_columns = true;
 		}
 		else
 		{
-			selected_columns = split(delimited_query[1], ',') // in case specific attributes are selected
+			query.selected_columns = split(delimited_query[1], ','); // in case specific attributes are selected
 		}
 		// delimited_query[2] = the from clause therefore skipping
-		selected_table = delimited_query[3];
-		transform(selected_table.begin(), selected_table.end(), selected_table.begin(), ::tolower);
+		query.selected_table = delimited_query[3];
+		transform(query.selected_table.begin(), query.selected_table.end(), query.selected_table.begin(), ::tolower);
+		if(delimited_query[4]!=";")
+		{
+			transform(delimited_query[4].begin(), delimited_query[4].end(), delimited_query[4].begin(), ::tolower);
+			if(delimited_query[4]=="where")
+			{
+				query.is_where_clause = true;
+				query.where_condition = delimited_query[5];
+			}
+		}
 
 	}
 	else if(definer=="delete")
 	{
 		if(delimited_query[1]=="*")
 		{
-			deleted_all_columns = true; // while deleting a row, dont forget to add a *
+			query.deleted_all_columns = true; // while deleting a row, dont forget to add a *
 		}
 		else
 		{
-			deleted_columns = split(delimited_query[1], ',') // in case specific attributes are selected
+			query.deleted_columns = split(delimited_query[1], ','); // in case specific attributes are selected
 		}
-		delete_from_table = delimited_query[3];
-		transform(delete_from_table.begin(), delete_from_table.end(), delete_from_table.begin(), ::tolower);
+		query.delete_from_table = delimited_query[3];
+		transform(query.delete_from_table.begin(), query.delete_from_table.end(), query.delete_from_table.begin(), ::tolower);
+		if(delimited_query[4]!=";")
+		{
+			transform(delimited_query[4].begin(), delimited_query[4].end(), delimited_query[4].begin(), ::tolower);
+			if(delimited_query[4]=="where")
+			{
+				query.is_where_clause = true;
+				query.where_condition = delimited_query[5];
+			}
+		}
 	}
 	else if(definer=="insert")
 	{
-		handle_insert(delimited_query);
+		// delimited_query[1] in this case will be the into clause, therefore skipping
+		query.inserted_table = delimited_query[2];
+		// delimited_query[3] will be the clause "values", therefore skipping
+		query.inserted_values = split(delimited_query[4], ','); // syntax will be INSERT INTO <table_name> VALUES a,b,c,d ;
 	}
-}
-
-void handle_insert(string delimited_query) {
-	
+	else
+	{
+		cout<<"Invalid query"<<endl;	
+	}
 }
 
 int main()

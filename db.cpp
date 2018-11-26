@@ -43,7 +43,7 @@ database prepareDatabase(string name) {
 }
 
 void useDB(string name) {
-    name = ROOT_URL + name + "/";
+    name = ROOT_URL + "/" + name + "/";
     chdir(name.c_str());
     // global: database in use
     currentDB = prepareDatabase(name);

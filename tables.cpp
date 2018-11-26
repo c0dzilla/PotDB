@@ -17,7 +17,7 @@ error generateTableEntry(const char* name) {
     string tableName;
     while (getline(tablesRecord, tableName)) {
         if (strcmp(tableName.c_str(), name) == 0) {
-            err.msg = "Table " + tableName + " already exists";
+            err.msg = "Table '" + tableName + "' already exists";
             return err;
         }
     }
@@ -47,6 +47,27 @@ void createTableRecord(string path, table t) {
     tablesFile.close();
 }
 
+map<string, bool> fetchIndex(string path) {
+    map<string, bool> index;
+    DIR *dir = opendir(path.c_str());
+    struct dirent *ent = readdir(dir);
+    map<string, bool> invalids;
+    invalids[SCHEMA] = true;
+    invalids["."] = true;
+    invalids[".."] = true;
+
+    while (ent != NULL) {
+        if (invalids[ent->d_name]) {
+            ent = readdir(dir);
+            continue;
+        }
+        index[ent -> d_name] = true;
+        ent = readdir(dir);
+    }
+    closedir(dir);
+    return index;
+}
+
 void createTable(table t) {
     error err;
     // primary key enforced(atleast for now)
@@ -62,6 +83,7 @@ void createTable(table t) {
     mkdir(t.name.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     string path = t.name + "/";
     createTableRecord(path, t);
+    t.index = fetchIndex(path);
     currentDB.tables[t.name] = t;
 }
 
@@ -69,7 +91,7 @@ map<string, attribute> prepareAttributes(table& t, string path) {
     string file = path + SCHEMA;
     fstream tableFile;
     map<string, attribute> attributes;
-    tableFile.open(TABLE_RECORDS, ios::in | ios::out | ios::app);
+    tableFile.open(file, ios::in | ios::out | ios::app);
     string line;
     while (getline(tableFile, line)) {
         // primary key field
@@ -93,43 +115,36 @@ map<string, attribute> prepareAttributes(table& t, string path) {
     return attributes;
 }
 
-map<string, bool> generateIndex(string path) {
-    DIR *dir = opendir(path.c_str());
-    map<string, bool> index;
-    struct dirent *ent;
-    
-    if (dir) {
-        while (ent = readdir(dir)) {
-            index[ent->d_name] = true;
-        }
-    }
-
-    return index;
-}
-
 map<string, table> prepareTables() {
     map<string, table> tables;
     fstream tablesRecord;
     tablesRecord.open(TABLE_RECORDS, ios::in | ios::out | ios::app);
     string tableName;
+
     while (getline(tablesRecord, tableName)) {
         table t;
         t.name = tableName;
         string path = t.name + "/";
         t.attributes = prepareAttributes(t, path);
-        t.index = generateIndex(path);
+        t.index = fetchIndex(path);
         tables[tableName] = t;
     }
     tablesRecord.close();
     return tables;
 }
 
-bool checkKeyDuplicacy(table t, string key) {
-    return t.index.find(key) != t.index.end(); 
+error checkKeyDuplicacy(table t, string key) {
+    error err;
+    err.msg = "";
+    if (t.index.find(key) != t.index.end()) {
+        err.msg = "Detected duplicate value '" + key + "' on primary key " + t.primaryKey;
+    }
+    return err;
 }
 
 vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
     error err;
+    err.msg = "";
     // check table existence
     if (currentDB.tables.find(t.name) == currentDB.tables.end()) {
         err.msg = "Table " + t.name + " does not exist";
@@ -144,9 +159,10 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
         // check for invalid attribute
         for (auto attr = row.begin(); attr != row.end(); attr++) {
             if (t.attributes.find(attr->first) == t.attributes.end()) {
-                err.msg = "Attribute " + attr->first + " does not exist";
+                err.msg = "Attribute '" + attr->first + "' does not exist";
                 throwError(err);
                 rows.erase(itr);
+                itr--;
                 valid = false;
                 break;
             }
@@ -159,13 +175,22 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
             if (attr->second.nullAllowed == false && row.find(attr->first) == row.end()) {
                 err.msg = "Attribute '" + attr->first + "' cannot be null";
                 throwError(err);
+                rows.erase(itr);
+                itr--;
+                valid = false;
+                break;
             }
         }
+        if (!valid) {
+            continue;
+        }
         // primary key uniqueness
-        if (checkKeyDuplicacy(t, row[t.primaryKey])) {
-            err.msg = "Detected duplicate value " + row[t.primaryKey] +  " on primary key " + t.primaryKey;
+        err = checkKeyDuplicacy(t, row[t.primaryKey]);
+        if (err.msg != "") {
             throwError(err);
-            continue; 
+            rows.erase(itr);
+            itr--;
+            continue;
         }
         // write to file
         fstream record;
@@ -178,7 +203,8 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
             }
             record << element << "\n";
         }
-        
+
+        t.index[row[t.primaryKey]] = true;
         record.close();
     }
     return rows;

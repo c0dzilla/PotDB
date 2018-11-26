@@ -27,4 +27,5 @@ const string ROOT_URL = "/home/codzilla/potdb/";
 const string DATABASE_RECORDS = "db";
 const string TABLE_RECORDS = "tables";
 const string SCHEMA = "schema";
+const string INDEX = "index";
 const int BLOCK_SIZE = 5;

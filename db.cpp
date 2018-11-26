@@ -15,7 +15,7 @@ error generateDbEntry(const char* name) {
     string databaseName;
     while (getline(dbFile, databaseName)) {
         if (strcmp(databaseName.c_str(), name) == 0) {
-            err.msg = "Database " + databaseName + " already exists";
+            err.msg = "Database '" + databaseName + "' already exists";
             return err;
         }
     }

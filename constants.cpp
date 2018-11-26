@@ -23,6 +23,7 @@ struct database {
 
 database currentDB;
 
+const string db_name = "PotDB";
 const string ROOT_URL = "/home/codzilla/potdb/";
 const string DATABASE_RECORDS = "db";
 const string TABLE_RECORDS = "tables";

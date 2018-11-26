@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <bits/stdc++.h>
 #include <dirent.h>
-#include "constants.cpp"
+#include "query.cpp"
 #include "errors.cpp"
 
 using namespace std;
@@ -233,4 +233,29 @@ bool dropTable(vector<string> names) {
         currentDB.tables.erase(name);
     }
     return writeTableRecordFile(currentDB.tables);
+}
+
+vector<map<string, string>> selectOnPrimaryKeyCondition(selectFromTableOnPrimaryKey s) {
+    table t = currentDB.tables[s.table];
+    error err;
+    vector<map<string, string>> rows;
+    // check for invalid columns
+    for (auto& column : s.columns) {
+        if (t.attributes.find(column) == t.attributes.end()) {
+            err.msg = "Invalid attribute '" + column + "' in SELECT statement";
+            throwError(err);
+            return;
+        }
+    }
+    // if only key is needed, populate from index
+    if (s.columns.size()  == 1 && s.columns[0] == t.primaryKey) {
+        for (auto& key: s.where) {
+            if (t.index.find(key) != t.index.end()) {
+                map<string, string> row;
+                row[t.primaryKey] = key;
+                rows.push_back(row);
+            }
+        }
+        return rows;
+    }
 }

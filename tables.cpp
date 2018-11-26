@@ -258,4 +258,24 @@ vector<map<string, string>> selectOnPrimaryKeyCondition(selectFromTableOnPrimary
         }
         return rows;
     }
+    // fetch rows
+    for (auto& key : s.where) {
+        if (t.index.find(key) != t.index.end()) {
+            map<string, string> row;
+            fstream record;
+            string path = t.name + "/" + key;
+            record.open(path, ios::out | ios::in | ios::app);
+            for (auto& attr : t.attributes) {
+                string line;
+                getline(record, line);
+                // columns should be selected
+                if (find(s.columns.begin(), s.columns.end(), attr.first) != s.columns.end()) {
+                    row[attr.first] = line;
+                }
+            }
+            rows.push_back(row);
+        }
+    }
+
+    return rows;
 }

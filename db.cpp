@@ -7,7 +7,7 @@
 
 using namespace std;
 
-error generateDbEntry(const char* name) {
+error generateDbEntry(const char *name) {
     fstream dbFile;
     error err;
     err.msg = "";
@@ -24,6 +24,34 @@ error generateDbEntry(const char* name) {
     dbFile << '\n';
     dbFile.close();
     return err;
+}
+
+error deleteDbEntry(const char *name) {
+    error err;
+    err.msg = "";
+    ifstream dbFile;
+    dbFile.open(DATABASE_RECORDS, ios::in | ios::out | ios::app);
+    ofstream temp;
+    temp.open("temp.txt");
+    string databaseName;
+    bool flag = false;
+    while (getline(dbFile, databaseName)) {
+        if (databaseName != name) {
+            temp << databaseName << endl;
+        } else {
+            flag = true;
+        }
+    }
+    temp.close();
+    dbFile.close();
+    remove(DATABASE_RECORDS);
+    rename("temp.txt", DATABASE_RECORDS);
+    if (!flag){
+        return err;
+    }else {
+        err.msg = "NO DATABASE FOUND";
+        return err;
+    }
 }
 
 void createDB(database db) {
@@ -47,4 +75,13 @@ void useDB(string name) {
     chdir(name.c_str());
     // global: database in use
     currentDB = prepareDatabase(name);
+}
+
+void dropdb(database db) {
+    error err = deleteDbEntry(db.name.c_str());
+    if (err.msg != "") {
+        throwError(err);
+    } else {
+        rmdir(db.name.c_str());
+    }
 }

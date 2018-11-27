@@ -120,7 +120,7 @@ void parse_query(string user_input) {
 		return;
 	}
 
-	if(definer == "create") {
+	else if(definer == "create") {
 
 		if (delimited_query.size() == 0) {
 			err.msg = "No object specified for CREATE";
@@ -258,29 +258,21 @@ void parse_query(string user_input) {
 	}
 
 	else if(definer=="delete") {
-		if(delimited_query[1]=="*")
-		{
-			query.deleted_all_columns = true; // while deleting a row, dont forget to add a *
-		}
-		else
-		{
-			query.deleted_columns = split(delimited_query[1], ','); // in case specific attributes are selected
-		}
-		query.delete_from_table = delimited_query[3];
-		transform(query.delete_from_table.begin(), query.delete_from_table.end(), query.delete_from_table.begin(), ::tolower);
-		if(delimited_query[4]!=";")
-		{
-			transform(delimited_query[4].begin(), delimited_query[4].end(), delimited_query[4].begin(), ::tolower);
-			if(delimited_query[4]=="where")
-			{
-				query.is_where_clause = true;
-				query.where_condition = delimited_query[5];
+		if (delimited_query.size() == 0 || delimited_query.size() == 1) {
+			err.msg = "Invalid syntax in DELETE query";
+
+			if (delimited_query[0] == "table") {
+				delimited_query.erase(delimited_query.begin());
+				dropTable(delimited_query);
 			}
 		}
+
+		return;
 	}
-	else
-	{
-		cout<<"Invalid query"<<endl;	
+	else {
+		err.msg = "Invalid syntax";
+		throwError(err);
+		return;	
 	}
 }
 

@@ -242,9 +242,14 @@ bool dropTable(vector<string> names) {
 }
 
 vector<map<string, string>> selectOnPrimaryKeyCondition(selectFromTableOnPrimaryKey s) {
-    table t = currentDB.tables[s.table];
     error err;
     vector<map<string, string>> rows;
+    if (currentDB.tables.find(s.table) == currentDB.tables.end()) {
+        err.msg = "Table '" + s.table + "' does not exist";
+        throwError(err);
+        return rows;
+    }
+    table t = currentDB.tables[s.table];
     // check for invalid columns
     for (auto& column : s.columns) {
         if (t.attributes.find(column) == t.attributes.end()) {

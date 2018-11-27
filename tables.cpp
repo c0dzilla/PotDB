@@ -244,7 +244,7 @@ vector<map<string, string>> selectOnPrimaryKeyCondition(selectFromTableOnPrimary
         if (t.attributes.find(column) == t.attributes.end()) {
             err.msg = "Invalid attribute '" + column + "' in SELECT statement";
             throwError(err);
-            return;
+            return rows;
         }
     }
     // if only key is needed, populate from index
@@ -268,7 +268,7 @@ vector<map<string, string>> selectOnPrimaryKeyCondition(selectFromTableOnPrimary
             for (auto& attr : t.attributes) {
                 string line;
                 getline(record, line);
-                // columns should be selected
+                // column should be selected
                 if (find(s.columns.begin(), s.columns.end(), attr.first) != s.columns.end()) {
                     row[attr.first] = line;
                 }

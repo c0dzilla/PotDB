@@ -6,14 +6,14 @@
 
 using namespace std;
 
-struct select {
-    struct selectFromTableOnPrimaryKey s;
-};
-
 struct selectFromTableOnPrimaryKey {
     vector<string> columns;
     string table;
     vector<string> where;
+};
+
+struct select {
+    struct selectFromTableOnPrimaryKey s;
 };
 
 struct createDatabase {

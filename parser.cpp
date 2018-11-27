@@ -70,6 +70,15 @@ void handleCreateTable(string name, vector<string> attributeNames, vector<string
 	return;
 }
 
+void displayRows(vector<map<string, string>> rows) {
+	for (auto& row : rows) {
+		cout<<"========"<<endl;
+		for (auto& attr : row) {
+			cout<<attr.first<<" : "<<attr.second<<endl;
+		}
+	}
+}
+
 void handleSimpleSelect(vector<string> columns, string tableName, vector<string> where) {
 	struct selectFromTableOnPrimaryKey s;
 	s.columns = columns;
@@ -77,12 +86,14 @@ void handleSimpleSelect(vector<string> columns, string tableName, vector<string>
 	s.where = where;
 	vector<map<string, string>> rows;
 	rows = selectOnPrimaryKeyCondition(s);
-	for (auto& row : rows) {
-		cout<<"========"<<endl;
-		for (auto& attr : row) {
-			cout<<attr.first<<" : "<<attr.second<<endl;
-		}
-	}
+	displayRows(rows);
+	return;
+}
+
+void handleInsert(string tableName, vector<map<string, string>> rows) {
+	table t = currentDB.tables[tableName];
+	vector<map<string, string>> insertedRows;
+	displayRows(rows);
 	return;
 }
 
@@ -90,10 +101,6 @@ void handleSimpleSelect(vector<string> columns, string tableName, vector<string>
 void parse_query(string user_input) {
 	parsed_query query;
 	error err;
-	/*
-		user query is split on whitespace,
-		note that the columns and clauses should be written without spaces
-	*/
 	vector<string> delimited_query = split(user_input, ' ');
 
 	if (delimited_query.size() == 0) {
@@ -216,8 +223,41 @@ void parse_query(string user_input) {
 		handleSimpleSelect(columns, tableName, where);
 		return;
 	}
-	else if(definer=="delete")
-	{
+
+	else if(definer=="insert") {
+		if (delimited_query.size() == 0 || delimited_query.size() == 1 || delimited_query.size() == 2) {
+			err.msg = "Incorrect syntax for INSERT query";
+			throwError(err);
+			return;
+		}
+		string tableName = delimited_query[1];
+		delimited_query.erase(delimited_query.begin(), delimited_query.begin() + 1);
+		vector<string> rows = delimited_query;
+		vector<map<string, string>> rowsToInsert;		
+
+		for (auto& row : rows) {
+			map<string, string> rowToInsert;
+			vector<string> keyValuePairs = split(row, ',');
+
+			for (auto& keyValuePair : keyValuePairs) {
+				vector<string> keyValue = split(keyValuePair, ':');
+				if (keyValue.size() != 2) {
+					err.msg = "Invalid syntax in insert query";
+					throwError(err);
+					return;
+				}
+				string key = keyValue[0];
+				string value = keyValue[1];
+				rowToInsert[key] = value;
+			}
+
+			rowsToInsert.push_back(rowToInsert);
+		}
+		handleInsert(tableName, rowsToInsert);
+		return;
+	}
+
+	else if(definer=="delete") {
 		if(delimited_query[1]=="*")
 		{
 			query.deleted_all_columns = true; // while deleting a row, dont forget to add a *
@@ -237,13 +277,6 @@ void parse_query(string user_input) {
 				query.where_condition = delimited_query[5];
 			}
 		}
-	}
-	else if(definer=="insert")
-	{
-		// delimited_query[1] in this case will be the into clause, therefore skipping
-		query.inserted_table = delimited_query[2];
-		// delimited_query[3] will be the clause "values", therefore skipping
-		query.inserted_values = split(delimited_query[4], ','); // syntax will be INSERT INTO <table_name> VALUES a,b,c,d ;
 	}
 	else
 	{

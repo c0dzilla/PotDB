@@ -50,7 +50,40 @@ void handleCreateDB(string name) {
 	}
 }
 
-void handleCreateTable(string name, vector<string> attributes, vector<string> notNull, string primaryKey) {
+void handleCreateTable(string name, vector<string> attributeNames, vector<string> nullAllowed, string primaryKey) {
+	table t;
+	t.name = name;
+	map<string, attribute> attributes;
+
+	for (auto& attr : attributeNames) {
+		struct attribute a;
+		a.name = attr;
+		attributes[name] = a;
+	}
+
+	for (auto& attr : nullAllowed) {
+		attributes[attr].nullAllowed = true;
+	}
+
+	t.attributes = attributes;
+	createTable(t);
+	return;
+}
+
+void handleSimpleSelect(vector<string> columns, string tableName, vector<string> where) {
+	struct selectFromTableOnPrimaryKey s;
+	s.columns = columns;
+	s.table = tableName;
+	s.where = where;
+	vector<map<string, string>> rows;
+	rows = selectOnPrimaryKeyCondition(s);
+	for (auto& row : rows) {
+		cout<<"========"<<endl;
+		for (auto& attr : row) {
+			cout<<attr.first<<" : "<<attr.second<<endl;
+		}
+	}
+	return;
 }
 
 
@@ -107,7 +140,7 @@ void parse_query(string user_input) {
 			delimited_query.erase(delimited_query.begin());
 			string primaryKey = "";
 			vector<string> attributes;
-			vector<string> notNull;
+			vector<string> nullAllowed;
 	
 			for (auto itr = delimited_query.begin(); itr != delimited_query.end(); itr++) {
 				bool isPrimaryKey = false;
@@ -128,8 +161,8 @@ void parse_query(string user_input) {
 					}
 					isPrimaryKey = true;
 				}
-				// null not allowed
-				if (word[word.length() - 1] == '-') {
+				// null allowed
+				if (word[word.length() - 1] == '+') {
 					word.pop_back;
 					if (word.size() == 0) {
 						err.msg = "Attribute name cannot be empty";
@@ -144,20 +177,16 @@ void parse_query(string user_input) {
 					primaryKey = word;
 				}
 				if (hasNullConstraint) {
-					notNull.push_back(word);
+					nullAllowed.push_back(word);
 				}
 
-				handleCreateTable(tableName, attributes, notNull, primaryKey);
+				handleCreateTable(tableName, attributes, nullAllowed, primaryKey);
 			}
-
-			handleCreateTable(tableName, delimited_query);
-		}
-
-		else {
-			err.msg = "Invalid object for CREATE";
-			throwError(err);
 			return;
 		}
+		err.msg = "Invalid object for CREATE";
+		throwError(err);
+		return;
 	}
 
 	else if(definer=="drop")
@@ -172,29 +201,20 @@ void parse_query(string user_input) {
 		}
 	}
 
-	else if(definer=="select")
-	{
-		if(delimited_query[1]=="*")
-		{
-			query.selected_all_columns = true;
+	else if(definer=="select") {
+		if (delimited_query.size() == 0 || delimited_query.size() == 1) {
+			err.msg = "Incorrect syntax in select query";
+			throwError(err);
+			return;
 		}
-		else
-		{
-			query.selected_columns = split(delimited_query[1], ','); // in case specific attributes are selected
-		}
-		// delimited_query[2] = the from clause therefore skipping
-		query.selected_table = delimited_query[3];
-		transform(query.selected_table.begin(), query.selected_table.end(), query.selected_table.begin(), ::tolower);
-		if(delimited_query[4]!=";")
-		{
-			transform(delimited_query[4].begin(), delimited_query[4].end(), delimited_query[4].begin(), ::tolower);
-			if(delimited_query[4]=="where")
-			{
-				query.is_where_clause = true;
-				query.where_condition = delimited_query[5];
-			}
-		}
-
+		vector<string> columns;
+		columns = split(delimited_query[0], ',');
+		string tableName = delimited_query[1];
+		vector<string> where;
+		delimited_query.erase(delimited_query.begin(), delimited_query.begin() + 1);
+		where = delimited_query;
+		handleSimpleSelect(columns, tableName, where);
+		return;
 	}
 	else if(definer=="delete")
 	{

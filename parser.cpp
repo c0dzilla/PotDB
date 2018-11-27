@@ -1,75 +1,162 @@
 #include <bits/stdc++.h>
+#include "db.cpp"
 
 using namespace std;
 
 // every query shall end with a ' ;' i.e. space followed by a semi colon
 struct parsed_query {
-	string created_db;
+	//string created_db;
 	string used_db;
 	string dropped_db;
-	string created_table;
-	string used_table;
+	//string created_table;
+	//string used_table;
 	string dropped_table;
-	bool selected_all_columns;
-	bool deleted_all_columns;
-	bool is_where_clause;
-	string inserted_table;
-	string selected_table;
-	string delete_from_table;
-	string where_condition;
-	vector<string> selected_columns;
-	vector<string> deleted_columns;
-	vector<string> inserted_values;
-	string where_clause;
+	//bool selected_all_columns;
+	//bool deleted_all_columns;
+	//bool is_where_clause;
+	//string inserted_table;
+	//string selected_table;
+	//string delete_from_table;
+	//string where_condition;
+	//vector<string> selected_columns;
+	//vector<string> deleted_columns;
+	//vector<string> inserted_values;
+	//string where_clause;
 };
 
 vector<string> split(string str, char delimiter) {
-  vector<string> internal;
-  stringstream ss(str); // Turn the string into a stream.
-  string tok;
- 
-  while(getline(ss, tok, delimiter)) {
-    internal.push_back(tok);
-  }
- 
-  return internal;
+  	vector<string> internal;
+  	stringstream ss(str);
+  	string tok;
+
+  	while(getline(ss, tok, delimiter)) {
+    	internal.push_back(tok);
+  	}
+
+	return internal;
 }
 
+void handleUseDB(string name) {
+	if (useDB(name)) {
+		cout<<"Switched to database '" + name + "'\n";
+	}
+}
+
+void handleCreateDB(string name) {
+	database db;
+	db.name = name;
+	if (createDB(db)) {
+		cout<<"Success! Database '" + name + "' has been created\n";
+	}
+}
+
+void handleCreateTable(string name, vector<string> attributes, vector<string> notNull, string primaryKey) {
+}
+
+
 void parse_query(string user_input) {
-
 	parsed_query query;
+	error err;
+	/*
+		user query is split on whitespace,
+		note that the columns and clauses should be written without spaces
+	*/
+	vector<string> delimited_query = split(user_input, ' ');
 
-	vector<string> delimited_query = split(user_input, ' '); // user query is split on whitespace, note that the columns and clauses should be written without spaces
-	int n = delimited_query.size();
-	/*cout<<n<<endl;
-	for(int i=0; i<n; i++)
-	{
-		cout<<delimited_query[i]<<endl;
-	}*/
+	if (delimited_query.size() == 0) {
+		return;
+	}
 	string definer = delimited_query[0];
+	delimited_query.erase(delimited_query.begin());
 	transform(definer.begin(), definer.end(), definer.begin(), ::tolower);
 
-	if(definer=="use")
-	{
-		string object_used = delimited_query[1];
-		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower);
-		if(object_used=="database") {
-			query.used_db=delimited_query[2];
+	if(definer == "use") {
+		if (delimited_query.size() == 0) {
+			err.msg = "No database specified for USE";
+			throwError(err);
+			return;
 		}
-		else if(object_used=="table") {
-			query.used_table=delimited_query[2];
-		}
+		handleUseDB(delimited_query[1]);
+		return;
 	}
 
-	else if(definer=="create")
-	{
+	if(definer == "create") {
+
+		if (delimited_query.size() == 0) {
+			err.msg = "No object specified for CREATE";
+			throwError(err);
+			return;
+		}
 		string object_used = delimited_query[1];
 		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower);
-		if(object_used=="database") {
-			query.created_db=delimited_query[2];
+
+		if(object_used == "database") {
+			handleCreateDB(object_used);
+			return;
 		}
-		else if(object_used=="table") {
-			query.created_table=delimited_query[2];
+
+		if(object_used == "table") {
+			delimited_query.erase(delimited_query.begin());
+
+			if (delimited_query.size() == 0) {
+				err.msg = "Table properties not specified";
+				throwError(err);
+				return;
+			}
+			string tableName = delimited_query[1];
+			delimited_query.erase(delimited_query.begin());
+			string primaryKey = "";
+			vector<string> attributes;
+			vector<string> notNull;
+	
+			for (auto itr = delimited_query.begin(); itr != delimited_query.end(); itr++) {
+				bool isPrimaryKey = false;
+				bool hasNullConstraint = false;
+				string word = *itr;
+				// primary key
+				if (word[0] == '.') {
+					word = word.substr(1, word.size()-1);
+					if (word.size() == 0) {
+						err.msg = "Invalid attribute specified as primary key";
+						throwError(err);
+						return;
+					}
+					if (primaryKey != "") {
+						err.msg = "Only one attribute can be the primary key";
+						throwError(err);
+						return;
+					}
+					isPrimaryKey = true;
+				}
+				// null not allowed
+				if (word[word.length() - 1] == '-') {
+					word.pop_back;
+					if (word.size() == 0) {
+						err.msg = "Attribute name cannot be empty";
+						throwError(err);
+						return;
+					}
+					hasNullConstraint = true;
+				}
+
+				attributes.push_back(word);
+				if (isPrimaryKey) {
+					primaryKey = word;
+				}
+				if (hasNullConstraint) {
+					notNull.push_back(word);
+				}
+
+				handleCreateTable(tableName, attributes, notNull, primaryKey);
+			}
+
+			handleCreateTable(tableName, delimited_query);
+		}
+
+		else {
+			err.msg = "Invalid object for CREATE";
+			throwError(err);
+			return;
 		}
 	}
 

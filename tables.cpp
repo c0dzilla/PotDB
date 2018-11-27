@@ -73,6 +73,12 @@ void createTable(table t) {
     // primary key enforced(atleast for now)
     if (t.primaryKey == "") {
         err.msg = "No primary key specified";
+        throwError(err);
+        return;
+    }
+    if (t.attributes.find(t.primaryKey) == t.attributes.end()) {
+        err.msg = "Specified primary key '" + t.primaryKey + "' is not a table attribute";
+        throwError(err);
         return;
     }
     err = generateTableEntry(t.name.c_str());

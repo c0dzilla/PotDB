@@ -73,6 +73,12 @@ void createTable(table t) {
     // primary key enforced(atleast for now)
     if (t.primaryKey == "") {
         err.msg = "No primary key specified";
+        throwError(err);
+        return;
+    }
+    if (t.attributes.find(t.primaryKey) == t.attributes.end()) {
+        err.msg = "Specified primary key '" + t.primaryKey + "' is not a table attribute";
+        throwError(err);
         return;
     }
     err = generateTableEntry(t.name.c_str());
@@ -236,9 +242,14 @@ bool dropTable(vector<string> names) {
 }
 
 vector<map<string, string>> selectOnPrimaryKeyCondition(selectFromTableOnPrimaryKey s) {
-    table t = currentDB.tables[s.table];
     error err;
     vector<map<string, string>> rows;
+    if (currentDB.tables.find(s.table) == currentDB.tables.end()) {
+        err.msg = "Table '" + s.table + "' does not exist";
+        throwError(err);
+        return rows;
+    }
+    table t = currentDB.tables[s.table];
     // check for invalid columns
     for (auto& column : s.columns) {
         if (t.attributes.find(column) == t.attributes.end()) {

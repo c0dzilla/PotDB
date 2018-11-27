@@ -26,13 +26,15 @@ error generateDbEntry(const char* name) {
     return err;
 }
 
-void createDB(database db) {
+bool createDB(database db) {
     error err = generateDbEntry(db.name.c_str());
     if (err.msg != "") {
         throwError(err);
+        return false;
     } else {
         mkdir(db.name.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     }
+    return true;
 }
 
 database prepareDatabase(string name) {
@@ -42,9 +44,25 @@ database prepareDatabase(string name) {
     return db;
 }
 
-void useDB(string name) {
+bool useDB(string name) {
+    bool found = false;
+    fstream dbFile;
+    error err;
+    dbFile.open(DATABASE_RECORDS, ios::in | ios::out | ios::app);
+    string dbName;
+
+    while (getline(dbFile, dbName)) {
+        if (dbName == name) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        return false;
+    }
     name = ROOT_URL + "/" + name + "/";
     chdir(name.c_str());
     // global: database in use
     currentDB = prepareDatabase(name);
+    return true;
 }

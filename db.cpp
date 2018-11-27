@@ -57,7 +57,7 @@ bool useDB(string name) {
             break;
         }
     }
-    if (!found) {
+    if (found) {
         return false;
     }
     name = ROOT_URL + "/" + name + "/";

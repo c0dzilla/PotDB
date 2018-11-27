@@ -1,5 +1,5 @@
 #include <bits/stdc++.h>
-#include "constants.cpp"
+#include "parser.cpp"
 using namespace std;
 
 void handle_help() {
@@ -13,16 +13,15 @@ void handle_help() {
 	cout<<"create table <table_name> ;"<<endl;
 	cout<<"5. To delete a table : ";
 	cout<<"drop table <table_name> ;"<<endl;
-	cout<<"6. To query rows from table : ";
-	cout<<"select * from <table_name> ;"<<" OR "<<"select * from <table_name> where <condition> ;"<<endl;
+	cout<<"6. To select rows from table : ";
+	cout<<"select column1,column2,column3 <table_name> value1,value2"<<endl;
 	cout<<"7. To insert a row : ";
-	cout<<"insert into <table_name> values <a,b,c,d> ;"<<endl;
+	cout<<"insert <table_name> attr1=value1,attr2=value2 attr1=value3 attr2=value4"<<endl;
 	cout<<"8. To delete entries :";
 	cout<<"delete * from <table_name> ;"<<" OR "<<"delete * from <table_name> where <condition> ;"<<endl;
 }
 
-int main()
-{
+int main() {
 	cout<<"---------------------------------------------------Welcome to "<<db_name<<"!"<<"---------------------------------------------------"<<endl;
 	cout<<"Type `help` to get information about the usage"<<endl;
 	while(true)
@@ -30,17 +29,17 @@ int main()
 		cout<<"->";
 		string input;
 		getline(cin, input);
-		if(input=="help")
-		{
+
+		if(input=="help") {
 			handle_help();
 		}
-		if(input=="quit")
-		{
+
+		else if(input=="quit") {
 			exit(0);
 		}
-		else
-		{
-			//handle this
+
+		else {
+			parse_query(input);
 		}
 	}
 }

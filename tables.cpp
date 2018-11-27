@@ -200,6 +200,9 @@ void deleteRecord(table t, vector<map<string, string>> rows) {
                 err.msg = "File does not exist";
             } else {
                 remove(file);
+                map<string, bool>::iterator it;
+                it = t.index.find(row[t.primaryKey])
+                t.index.erase(it);
             }
         }
     }

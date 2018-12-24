@@ -3,27 +3,6 @@
 
 using namespace std;
 
-// every query shall end with a ' ;' i.e. space followed by a semi colon
-struct parsed_query {
-	//string created_db;
-	string used_db;
-	string dropped_db;
-	//string created_table;
-	//string used_table;
-	string dropped_table;
-	//bool selected_all_columns;
-	//bool deleted_all_columns;
-	//bool is_where_clause;
-	//string inserted_table;
-	//string selected_table;
-	//string delete_from_table;
-	//string where_condition;
-	//vector<string> selected_columns;
-	//vector<string> deleted_columns;
-	//vector<string> inserted_values;
-	//string where_clause;
-};
-
 vector<string> split(string str, char delimiter) {
   	vector<string> internal;
   	stringstream ss(str);
@@ -53,12 +32,13 @@ void handleCreateDB(string name) {
 void handleCreateTable(string name, vector<string> attributeNames, vector<string> nullAllowed, string primaryKey) {
 	table t;
 	t.name = name;
+	t.primaryKey = primaryKey;
 	map<string, attribute> attributes;
 
 	for (auto& attr : attributeNames) {
 		struct attribute a;
 		a.name = attr;
-		attributes[name] = a;
+		attributes[a.name] = a;
 	}
 
 	for (auto& attr : nullAllowed) {
@@ -66,7 +46,9 @@ void handleCreateTable(string name, vector<string> attributeNames, vector<string
 	}
 
 	t.attributes = attributes;
-	createTable(t);
+	if (createTable(t)) {
+		cout<<"Created table '" + t.name + "'"<<endl;
+	}
 	return;
 }
 
@@ -99,7 +81,6 @@ void handleInsert(string tableName, vector<map<string, string>> rows) {
 
 
 void parse_query(string user_input) {
-	parsed_query query;
 	error err;
 	vector<string> delimited_query = split(user_input, ' ');
 
@@ -116,7 +97,7 @@ void parse_query(string user_input) {
 			throwError(err);
 			return;
 		}
-		handleUseDB(delimited_query[1]);
+		handleUseDB(delimited_query[0]);
 		return;
 	}
 
@@ -127,7 +108,7 @@ void parse_query(string user_input) {
 			throwError(err);
 			return;
 		}
-		string object_used = delimited_query[1];
+		string object_used = delimited_query[0];
 		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower);
 
 		if(object_used == "database") {
@@ -143,7 +124,7 @@ void parse_query(string user_input) {
 				throwError(err);
 				return;
 			}
-			string tableName = delimited_query[1];
+			string tableName = delimited_query[0];
 			delimited_query.erase(delimited_query.begin());
 			string primaryKey = "";
 			vector<string> attributes;
@@ -170,7 +151,7 @@ void parse_query(string user_input) {
 				}
 				// null allowed
 				if (word[word.length() - 1] == '+') {
-					word.pop_back;
+					word = word.substr(0, word.size() - 1);
 					if (word.size() == 0) {
 						err.msg = "Attribute name cannot be empty";
 						throwError(err);
@@ -196,18 +177,6 @@ void parse_query(string user_input) {
 		return;
 	}
 
-	else if(definer=="drop")
-	{
-		string object_used = delimited_query[1];
-		transform(object_used.begin(), object_used.end(), object_used.begin(), ::tolower);
-		if(object_used=="database") {
-			query.dropped_db=delimited_query[2];
-		}
-		else if(object_used=="table") {
-			query.dropped_table=delimited_query[2];
-		}
-	}
-
 	else if(definer=="select") {
 		if (delimited_query.size() == 0 || delimited_query.size() == 1) {
 			err.msg = "Incorrect syntax in select query";
@@ -216,22 +185,23 @@ void parse_query(string user_input) {
 		}
 		vector<string> columns;
 		columns = split(delimited_query[0], ',');
-		string tableName = delimited_query[1];
+		delimited_query.erase(delimited_query.begin());
+		string tableName = delimited_query[0];
 		vector<string> where;
-		delimited_query.erase(delimited_query.begin(), delimited_query.begin() + 1);
+		delimited_query.erase(delimited_query.begin());
 		where = delimited_query;
 		handleSimpleSelect(columns, tableName, where);
 		return;
 	}
 
 	else if(definer=="insert") {
-		if (delimited_query.size() == 0 || delimited_query.size() == 1 || delimited_query.size() == 2) {
+		if (delimited_query.size() == 0 || delimited_query.size() == 1) {
 			err.msg = "Incorrect syntax for INSERT query";
 			throwError(err);
 			return;
 		}
-		string tableName = delimited_query[1];
-		delimited_query.erase(delimited_query.begin(), delimited_query.begin() + 1);
+		string tableName = delimited_query[0];
+		delimited_query.erase(delimited_query.begin());
 		vector<string> rows = delimited_query;
 		vector<map<string, string>> rowsToInsert;		
 
@@ -240,7 +210,7 @@ void parse_query(string user_input) {
 			vector<string> keyValuePairs = split(row, ',');
 
 			for (auto& keyValuePair : keyValuePairs) {
-				vector<string> keyValue = split(keyValuePair, ':');
+				vector<string> keyValue = split(keyValuePair, '=');
 				if (keyValue.size() != 2) {
 					err.msg = "Invalid syntax in insert query";
 					throwError(err);
@@ -257,6 +227,7 @@ void parse_query(string user_input) {
 		return;
 	}
 
+	// TODO: add delete database
 	else if(definer=="delete") {
 		if (delimited_query.size() == 0 || delimited_query.size() == 1) {
 			err.msg = "Invalid syntax in DELETE query";
@@ -274,12 +245,4 @@ void parse_query(string user_input) {
 		throwError(err);
 		return;	
 	}
-}
-
-int main()
-{
-	string input;
-	getline(cin, input);
-	parse_query(input);
-	return 0;
 }

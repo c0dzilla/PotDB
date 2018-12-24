@@ -52,7 +52,7 @@ bool useDB(string name) {
     string dbName;
 
     while (getline(dbFile, dbName)) {
-        if (dbName == name) {
+        if (strcmp(dbName.c_str(), name.c_str()) == 0) {
             found = true;
             break;
         }

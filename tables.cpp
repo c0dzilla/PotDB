@@ -68,29 +68,30 @@ map<string, bool> fetchIndex(string path) {
     return index;
 }
 
-void createTable(table t) {
+bool createTable(table t) {
     error err;
     // primary key enforced(atleast for now)
     if (t.primaryKey == "") {
         err.msg = "No primary key specified";
         throwError(err);
-        return;
+        return false;
     }
     if (t.attributes.find(t.primaryKey) == t.attributes.end()) {
         err.msg = "Specified primary key '" + t.primaryKey + "' is not a table attribute";
         throwError(err);
-        return;
+        return false;
     }
     err = generateTableEntry(t.name.c_str());
     if (err.msg != "") {
         throwError(err);
-        return;
+        return false;
     }
     mkdir(t.name.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
     string path = t.name + "/";
     createTableRecord(path, t);
     t.index = fetchIndex(path);
     currentDB.tables[t.name] = t;
+    return true;
 }
 
 map<string, attribute> prepareAttributes(table& t, string path) {

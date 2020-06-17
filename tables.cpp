@@ -216,6 +216,30 @@ vector<map<string, string>> insert(table t, vector<map<string, string>> rows) {
     return rows;
 }
 
+void deleteRecord(table t, vector<map<string, string>> rows) {
+    error err;
+    // check table existence
+    if (currentDB.tables.find(t.name) == currentDB.tables.end()) {
+        err.msg = "Table " + t.name + " does not exist";
+        throwError(err);
+    }
+    else {
+        for (auto itr = rows.begin(); itr != rows.end(); itr++) {
+            map<string, string> row = *itr;
+            fstream record;
+            string file = t.name + "/" + row[t.primaryKey];
+            if(ifstream(file)==false) {
+                err.msg = "File does not exist";
+            } else {
+                remove(file);
+                map<string, bool>::iterator it;
+                it = t.index.find(row[t.primaryKey])
+                t.index.erase(it);
+            }
+        }
+    }
+}
+
 bool writeTableRecordFile(map<string, table> tables) {
     fstream tablesRecord;
     tablesRecord.open(TABLE_RECORDS, ios::out);
